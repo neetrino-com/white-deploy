@@ -11,6 +11,7 @@
     "analytics": "Analytics",
     "filterByPrice": "Filter by Price",
     "delivery": "Delivery",
+    "payments": "Payments",
     "settings": "Settings"
   },
   "dashboard": {
@@ -623,6 +624,20 @@
       "totalCol": "Total",
       "noItemsFound": "No items found for this order"
     }
+  },
+  "payments": {
+    "title": "Payments",
+    "description": "Configure payment gateway settings for Ameria Bank",
+    "clientId": "Client ID",
+    "username": "Username",
+    "password": "Password",
+    "testMode": "Test Mode",
+    "returnUrl": "Return URL",
+    "callbackUrl": "Callback URL",
+    "currency": "Currency",
+    "validateAndActivate": "Validate & Activate",
+    "deactivate": "Deactivate",
+    "validating": "Validating..."
   },
   "common": {
     "loading": "Loading...",

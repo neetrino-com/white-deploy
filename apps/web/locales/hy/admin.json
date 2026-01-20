@@ -11,6 +11,7 @@
     "analytics": "Վերլուծություն",
     "filterByPrice": "Զտել ըստ գնի",
     "delivery": "Առաքում",
+    "payments": "Վճարումներ",
     "settings": "Կարգավորումներ"
   },
   "dashboard": {
@@ -638,5 +639,19 @@
     "saving": "Պահվում է...",
     "back": "Վերադառնալ",
     "backToAdmin": "Վերադառնալ ադմինիստրատորի վահան"
+  },
+  "payments": {
+    "title": "Վճարումներ",
+    "description": "Կարգավորել Ameria Bank-ի վճարման համակարգի կարգավորումները",
+    "clientId": "Client ID",
+    "username": "Օգտանուն",
+    "password": "Գաղտնաբառ",
+    "testMode": "Փորձարկման ռեժիմ",
+    "returnUrl": "Վերադարձի URL",
+    "callbackUrl": "Callback URL",
+    "currency": "Արժույթ",
+    "validateAndActivate": "Վավերացնել և ակտիվացնել",
+    "deactivate": "Անջատել",
+    "validating": "Վավերացվում է..."
   }
 }

@@ -11,6 +11,7 @@
     "analytics": "Аналитика",
     "filterByPrice": "Фильтр по цене",
     "delivery": "Доставка",
+    "payments": "Платежи",
     "settings": "Настройки"
   },
   "dashboard": {
@@ -640,5 +641,19 @@
     "saving": "Сохранение...",
     "back": "Назад",
     "backToAdmin": "Вернуться в панель администратора"
+  },
+  "payments": {
+    "title": "Платежи",
+    "description": "Настройка платежной системы Ameria Bank",
+    "clientId": "Client ID",
+    "username": "Имя пользователя",
+    "password": "Пароль",
+    "testMode": "Тестовый режим",
+    "returnUrl": "URL возврата",
+    "callbackUrl": "Callback URL",
+    "currency": "Валюта",
+    "validateAndActivate": "Проверить и активировать",
+    "deactivate": "Деактивировать",
+    "validating": "Проверка..."
   }
 }

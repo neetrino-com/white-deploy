@@ -326,6 +326,29 @@ class OrdersService {
         return { order: newOrder, payment };
       });
 
+      // Initialize payment with Ameria Bank if payment method is 'ameria'
+      let paymentUrl: string | null = null;
+      let expiresAt: Date | null = null;
+
+      if (paymentMethod === 'ameria') {
+        try {
+          // Dynamic import to avoid circular dependencies
+          const ameriaModule = await import('./payments/ameria-payment.service');
+          const paymentInit = await ameriaModule.ameriaPaymentService.initializePayment(
+            order.order.id,
+            total,
+            `Order ${order.order.number}`
+          );
+          paymentUrl = paymentInit.paymentUrl;
+          // Payment URLs typically expire after 30 minutes
+          expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+        } catch (error: any) {
+          console.error('❌ [ORDERS SERVICE] Error initializing Ameria payment:', error);
+          // Don't fail the order creation, but log the error
+          // Payment can be initialized later
+        }
+      }
+
       // Return order and payment info
       return {
         order: {
@@ -338,12 +361,14 @@ class OrdersService {
         },
         payment: {
           provider: order.payment.provider,
-          paymentUrl: null, // TODO: Generate payment URL for Idram/ArCa
-          expiresAt: null, // TODO: Set expiration if needed
+          paymentUrl: paymentUrl,
+          expiresAt: expiresAt?.toISOString() || null,
         },
-        nextAction: paymentMethod === 'idram' || paymentMethod === 'arca' 
-          ? 'redirect_to_payment' 
-          : 'view_order',
+        nextAction: paymentMethod === 'ameria' && paymentUrl
+          ? 'redirect_to_payment'
+          : paymentMethod === 'cash_on_delivery'
+          ? 'view_order'
+          : 'pending_payment',
       };
     } catch (error: any) {
       // If it's already our custom error, re-throw it
