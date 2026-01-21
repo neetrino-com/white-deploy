@@ -2,6 +2,8 @@
 
 Modern e-commerce platform built with Next.js 14, PostgreSQL, and Prisma.
 
+> Last updated: January 2026
+
 ## 🏗️ Architecture
 
 This project uses a **monorepo structure** with Next.js 14 App Router:
