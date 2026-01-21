@@ -332,6 +332,7 @@ class OrdersService {
 
       if (paymentMethod === 'ameria') {
         try {
+          console.log('💳 [ORDERS SERVICE] Initializing Ameria Bank payment for order:', order.order.id);
           // Dynamic import to avoid circular dependencies
           const ameriaModule = await import('./payments/ameria-payment.service');
           const paymentInit = await ameriaModule.ameriaPaymentService.initializePayment(
@@ -342,10 +343,35 @@ class OrdersService {
           paymentUrl = paymentInit.paymentUrl;
           // Payment URLs typically expire after 30 minutes
           expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+          console.log('✅ [ORDERS SERVICE] Ameria Bank payment initialized successfully:', paymentUrl);
         } catch (error: any) {
-          console.error('❌ [ORDERS SERVICE] Error initializing Ameria payment:', error);
-          // Don't fail the order creation, but log the error
-          // Payment can be initialized later
+          console.error('❌ [ORDERS SERVICE] Error initializing Ameria payment:', {
+            error: error,
+            message: error.message,
+            detail: error.detail,
+            status: error.status,
+            type: error.type,
+            title: error.title,
+          });
+          
+          // If payment system is inactive or configuration is missing, throw error
+          // This prevents creating orders that cannot be paid
+          if (error.status === 503 || error.status === 500) {
+            throw {
+              status: error.status || 503,
+              type: error.type || "payment_system_error",
+              title: error.title || "Payment System Error",
+              detail: error.detail || error.message || "Ameria Bank payment system is not available. Please contact support or choose another payment method.",
+            };
+          }
+          
+          // For other errors, still throw to prevent order creation without payment
+          throw {
+            status: error.status || 500,
+            type: error.type || "payment_init_error",
+            title: error.title || "Payment Initialization Failed",
+            detail: error.detail || error.message || "Failed to initialize payment with Ameria Bank. Please try again or choose another payment method.",
+          };
         }
       }
 

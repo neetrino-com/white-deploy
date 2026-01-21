@@ -465,17 +465,51 @@ export class AmeriaClient {
    * 
    * Format: {BASE_PAYMENT_URL}/Payments/Pay?id={PaymentID}&lang={lang}
    * 
+   * According to documentation:
+   * - Test: https://servicestest.ameriabank.am/VPOS/Payments/Pay?id={PaymentID}&lang={lang}
+   * - Production: https://services.ameriabank.am/VPOS/Payments/Pay?id={PaymentID}&lang={lang}
+   * 
    * @param paymentId Payment ID from InitPayment response
    * @param lang Interface language: 'am' (Armenian), 'ru' (Russian), 'en' (English)
    * @returns Payment page URL
    */
   getPaymentUrl(paymentId: string, lang: string = 'en'): string {
+    // Validate paymentId
+    if (!paymentId || paymentId.trim().length === 0) {
+      throw new Error('PaymentID is required to generate payment URL');
+    }
+
+    // Validate and normalize lang parameter
+    const normalizedLang = this.normalizeLanguage(lang);
+    
+    // Base URLs according to documentation
     const paymentBaseUrl = this.config.testMode
       ? 'https://servicestest.ameriabank.am/VPOS/Payments/Pay'
       : 'https://services.ameriabank.am/VPOS/Payments/Pay';
     
-    // Note: Parameter name is 'id' (not 'PaymentID') and 'lang' is required
-    return `${paymentBaseUrl}?id=${paymentId}&lang=${lang}`;
+    // Construct URL according to documentation format
+    // Parameter name is 'id' (not 'PaymentID') and 'lang' is required
+    const paymentUrl = `${paymentBaseUrl}?id=${encodeURIComponent(paymentId)}&lang=${normalizedLang}`;
+    
+    console.log('🔗 [AMERIA CLIENT] Generated payment URL:', {
+      testMode: this.config.testMode,
+      paymentId,
+      lang: normalizedLang,
+      url: paymentUrl,
+    });
+    
+    return paymentUrl;
+  }
+
+  /**
+   * Normalize language code to Ameria Bank format
+   * 
+   * @param lang Language code
+   * @returns Normalized language code ('en', 'am', or 'ru')
+   */
+  private normalizeLanguage(lang: string): 'en' | 'am' | 'ru' {
+    const normalized = AmeriaClient.convertLanguageToAmeria(lang);
+    return normalized;
   }
 
   /**

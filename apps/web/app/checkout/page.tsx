@@ -551,9 +551,31 @@ export default function CheckoutPage() {
     }
     
     // If Ameria Bank is selected, proceed directly (payment handled on bank's page)
+    // Submit immediately for Ameria Bank regardless of login status
+    if (paymentMethod === 'ameria') {
+      console.log('[Checkout] Ameria Bank selected - submitting directly');
+      handleSubmit(
+        onSubmit,
+        (errors) => {
+          console.error('[Checkout] Form validation errors:', errors);
+          const firstError = Object.keys(errors)[0];
+          if (firstError) {
+            const errorMessage = errors[firstError as keyof typeof errors]?.message;
+            setError(errorMessage || t('checkout.errors.validationFailed'));
+            // Scroll to first error field
+            const errorElement = document.querySelector(`[name="${firstError}"]`);
+            if (errorElement) {
+              errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+        }
+      )(e);
+      return;
+    }
+    
     // If guest checkout and cash on delivery, show modal to confirm/add shipping details
-    if (!isLoggedIn) {
-      console.log('[Checkout] Opening modal for guest checkout');
+    if (!isLoggedIn && paymentMethod === 'cash_on_delivery') {
+      console.log('[Checkout] Opening modal for guest checkout with cash on delivery');
       setShowShippingModal(true);
       return;
     }
@@ -565,6 +587,12 @@ export default function CheckoutPage() {
 
   async function onSubmit(data: CheckoutFormData) {
     setError(null);
+    console.log('[Checkout] onSubmit called with data:', {
+      paymentMethod: data.paymentMethod,
+      shippingMethod: data.shippingMethod,
+      email: data.email,
+      hasCart: !!cart,
+    });
 
     try {
       if (!cart) {
@@ -654,10 +682,25 @@ export default function CheckoutPage() {
       }
 
       // Otherwise redirect to order success page
+      console.log('[Checkout] Redirecting to order success page:', response.order.number);
       router.push(`/orders/${response.order.number}`);
     } catch (err: any) {
-      console.error('[Checkout] Error creating order:', err);
-      setError(err.message || t('checkout.errors.failedToCreateOrder'));
+      console.error('[Checkout] Error creating order:', {
+        error: err,
+        message: err.message,
+        detail: err.detail,
+        status: err.status,
+        type: err.type,
+        title: err.title,
+        stack: err.stack,
+      });
+      
+      // Show detailed error message
+      const errorMessage = err.detail || err.message || t('checkout.errors.failedToCreateOrder');
+      setError(errorMessage);
+      
+      // Scroll to error message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
