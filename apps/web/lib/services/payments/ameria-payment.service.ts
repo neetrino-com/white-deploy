@@ -55,6 +55,50 @@ export interface PaymentCallbackParams {
 
 class AmeriaPaymentService {
   /**
+   * Generate numeric OrderID for Ameria Bank
+   * 
+   * If orderIdMin and orderIdMax are configured, generates orderId in that range.
+   * Otherwise, converts order.number to a numeric value using hash.
+   * 
+   * @param orderNumber - Internal order number (e.g., "241225-12345")
+   * @param orderIdMin - Minimum order ID (optional)
+   * @param orderIdMax - Maximum order ID (optional)
+   * @returns Numeric order ID for Ameria Bank
+   */
+  private generateAmeriaOrderId(orderNumber: string, orderIdMin?: number, orderIdMax?: number): number {
+    // If range is configured, generate orderId in that range
+    if (orderIdMin !== undefined && orderIdMax !== undefined && orderIdMin < orderIdMax) {
+      // Use hash of orderNumber to generate consistent orderId in range
+      // This ensures same orderNumber always gets same orderId
+      const hash = this.simpleHash(orderNumber);
+      const range = orderIdMax - orderIdMin + 1;
+      const orderId = orderIdMin + (hash % range);
+      console.log(`🔢 [AMERIA PAYMENT] Generated orderId in range [${orderIdMin}, ${orderIdMax}]: ${orderId} (from order ${orderNumber})`);
+      return orderId;
+    }
+
+    // If no range configured, convert orderNumber to numeric value
+    // Remove non-numeric characters and take first 9 digits
+    const numericPart = orderNumber.replace(/\D/g, '');
+    const orderId = parseInt(numericPart.slice(0, 9)) || Date.now() % 1000000000;
+    console.log(`🔢 [AMERIA PAYMENT] Generated orderId from orderNumber: ${orderId} (from order ${orderNumber})`);
+    return orderId;
+  }
+
+  /**
+   * Simple hash function for consistent orderId generation
+   */
+  private simpleHash(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  /**
    * Get configured Ameria client instance
    */
   private async getClient(): Promise<{ client: AmeriaClient; config: AmeriaPaymentConfig }> {
@@ -163,9 +207,14 @@ class AmeriaPaymentService {
       // Get language for payment page (from order metadata or default)
       const lang = this.getPaymentLanguage(order);
 
+      // Generate numeric orderId for Ameria Bank
+      // Ameria requires integer OrderID, so we need to convert order.number to a number
+      // If orderIdMin and orderIdMax are configured, use them to generate orderId in range
+      const ameriaOrderId = this.generateAmeriaOrderId(order.number, config.orderIdMin, config.orderIdMax);
+
       // Initialize payment with Ameria
       const initResponse = await client.initPayment({
-        orderId: order.number,
+        orderId: ameriaOrderId,
         amount: amount,
         currency: config.currency,
         description: description || `Order ${order.number}`,

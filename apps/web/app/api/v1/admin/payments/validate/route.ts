@@ -50,11 +50,15 @@ export async function POST(req: NextRequest) {
     const testResult = await client.testConnection();
 
     if (testResult.success) {
-      // Activate payment system
+      // Activate payment system automatically
+      console.log("✅ [ADMIN PAYMENTS] Validation successful, activating payment system...");
       const activatedConfig = await paymentConfigService.saveConfig({
         ...config,
         isActive: true,
         lastValidatedAt: new Date(),
+        // Preserve orderIdMin and orderIdMax if they exist
+        orderIdMin: config.orderIdMin,
+        orderIdMax: config.orderIdMax,
       });
 
       return NextResponse.json({

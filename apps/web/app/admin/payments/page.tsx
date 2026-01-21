@@ -21,6 +21,8 @@ interface AmeriaConfig {
   isActive: boolean;
   activatedAt?: string;
   lastValidatedAt?: string;
+  orderIdMin?: number;
+  orderIdMax?: number;
 }
 
 export default function PaymentsPage() {
@@ -36,6 +38,8 @@ export default function PaymentsPage() {
     callbackUrl: '',
     currency: 'AMD',
     isActive: false,
+    orderIdMin: undefined,
+    orderIdMax: undefined,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -111,10 +115,12 @@ export default function PaymentsPage() {
       const response = await apiClient.post<{ config: AmeriaConfig }>('/api/v1/admin/payments/config', {
         ...config,
         isActive: false, // Don't auto-activate, require validation first
+        orderIdMin: config.orderIdMin ? Number(config.orderIdMin) : undefined,
+        orderIdMax: config.orderIdMax ? Number(config.orderIdMax) : undefined,
       });
 
       setConfig(response.config);
-      setSuccess('Configuration saved successfully. Please validate and activate.');
+      setSuccess('Configuration saved successfully. Click "Validate & Activate" to test connection and automatically activate the payment system.');
     } catch (err: any) {
       console.error('Error saving config:', err);
       setError(err.detail || err.message || 'Failed to save configuration');
@@ -147,7 +153,7 @@ export default function PaymentsPage() {
 
       if (validateResponse.success) {
         setConfig(validateResponse.config);
-        setSuccess('Connection validated successfully! Payment system is now active.');
+        setSuccess('✅ Connection validated successfully! Payment system has been automatically activated.');
       } else {
         setError(validateResponse.message || 'Validation failed');
       }
@@ -412,6 +418,34 @@ export default function PaymentsPage() {
                         maxLength={3}
                       />
                     </div>
+
+                    <div>
+                      <Input
+                        label="Order ID Min (Նվազագույն Order ID)"
+                        type="number"
+                        value={config.orderIdMin || ''}
+                        onChange={(e) => setConfig({ ...config, orderIdMin: e.target.value ? Number(e.target.value) : undefined })}
+                        placeholder="1000000"
+                        disabled={saving || validating}
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Նվազագույն Order ID-ն, որը կօգտագործվի Ameria Bank-ի համար
+                      </p>
+                    </div>
+
+                    <div>
+                      <Input
+                        label="Order ID Max (Առավելագույն Order ID)"
+                        type="number"
+                        value={config.orderIdMax || ''}
+                        onChange={(e) => setConfig({ ...config, orderIdMax: e.target.value ? Number(e.target.value) : undefined })}
+                        placeholder="9999999"
+                        disabled={saving || validating}
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Առավելագույն Order ID-ն, որը կօգտագործվի Ameria Bank-ի համար
+                      </p>
+                    </div>
                   </div>
 
                   {/* Action Buttons */}
@@ -453,7 +487,7 @@ export default function PaymentsPage() {
                         <li><strong>Check URLs:</strong> Return URL and Callback URL are auto-detected (no need to change)</li>
                         <li><strong>Test Mode:</strong> Keep Test Mode enabled for testing with test credentials</li>
                         <li><strong>Save:</strong> Click "Save" to store the configuration</li>
-                        <li><strong>Validate:</strong> Click "Validate & Activate" to test connection and activate payment system</li>
+                        <li><strong>Validate & Activate:</strong> Click "Validate & Activate" to test connection - system will be automatically activated if validation succeeds</li>
                       </ol>
                     </div>
 
@@ -464,7 +498,7 @@ export default function PaymentsPage() {
                         <p><strong>Step 2:</strong> Verify that Callback URL is correct (auto-detected)</p>
                         <p><strong>Step 3:</strong> Click "Save" button</p>
                         <p><strong>Step 4:</strong> Click "Validate & Activate" button</p>
-                        <p><strong>Step 5:</strong> If validation succeeds, payment system will be activated automatically</p>
+                        <p><strong>Step 5:</strong> ✅ If validation succeeds, payment system will be <strong>automatically activated</strong> - no manual activation needed!</p>
                         <p className="mt-3 text-xs text-green-700">
                           💡 <strong>Tip:</strong> After activation, go to checkout page and test a payment with Ameria Bank option selected.
                         </p>

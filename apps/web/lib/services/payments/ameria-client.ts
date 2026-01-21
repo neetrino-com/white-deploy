@@ -423,13 +423,19 @@ export class AmeriaClient {
     console.log('🧪 [AMERIA CLIENT] Testing connection to Ameria API...');
 
     try {
-      // Try to initialize a test payment with minimal amount (1 AMD)
-      // In test mode, Ameria allows small amounts for testing
+      // Generate unique numeric orderId for test
+      const testOrderId = Date.now();
+      
+      // In test mode, Ameria requires minimum 10 AMD
+      const testAmount = this.config.testMode ? 10 : 1;
+      
+      // Try to initialize a test payment
       const testResponse = await this.initPayment({
-        orderId: `TEST-${Date.now()}`,
-        amount: 1,
+        orderId: testOrderId,
+        amount: testAmount,
         currency: 'AMD',
         description: 'Connection test',
+        opaque: String(testOrderId), // Store orderId in Opaque as required by Ameria
       });
 
       // Success criteria: ResponseCode === 1 && ResponseMessage === "OK"

@@ -23,6 +23,8 @@ export interface AmeriaPaymentConfig {
   isActive: boolean;
   activatedAt?: Date;
   lastValidatedAt?: Date;
+  orderIdMin?: number; // Minimum order ID for Ameria Bank
+  orderIdMax?: number; // Maximum order ID for Ameria Bank
 }
 
 /**
@@ -105,6 +107,8 @@ class PaymentConfigService {
         isActive: config.isActive ?? false,
         activatedAt: config.activatedAt ? new Date(config.activatedAt) : undefined,
         lastValidatedAt: config.lastValidatedAt ? new Date(config.lastValidatedAt) : undefined,
+        orderIdMin: config.orderIdMin ? Number(config.orderIdMin) : undefined,
+        orderIdMax: config.orderIdMax ? Number(config.orderIdMax) : undefined,
       };
     } catch (error: any) {
       console.error("❌ [PAYMENT CONFIG] Error getting config:", error);
