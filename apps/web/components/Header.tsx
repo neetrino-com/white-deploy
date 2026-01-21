@@ -184,7 +184,8 @@ export function Header() {
   const [showProductsMenu, setShowProductsMenu] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>('USD');
+  // Currency is frozen to AMD only
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>('AMD');
   const [categories, setCategories] = useState<Category[]>([]);
   const [, setSelectedCategory] = useState<Category | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(false);
@@ -379,19 +380,12 @@ export function Header() {
     fetchCart();
   }, [isLoggedIn]);
 
-  // Load currency from localStorage
+  // Currency is frozen to AMD - always set to AMD
   useEffect(() => {
-    setSelectedCurrency(getStoredCurrency());
+    // Force AMD - currency is frozen
+    setSelectedCurrency('AMD');
 
-    const handleCurrencyUpdate = () => {
-      setSelectedCurrency(getStoredCurrency());
-    };
-
-    window.addEventListener('currency-updated', handleCurrencyUpdate);
-
-    return () => {
-      window.removeEventListener('currency-updated', handleCurrencyUpdate);
-    };
+    // No need to listen for currency updates since currency is frozen
   }, []);
 
   // Sync search input with URL params - handled by HeaderSearchSync component wrapped in Suspense
@@ -432,7 +426,8 @@ export function Header() {
     return result;
   };
 
-  const selectedCurrencyInfo = CURRENCIES[selectedCurrency];
+  // Currency is frozen to AMD - always use AMD info
+  const selectedCurrencyInfo = CURRENCIES.AMD || { code: 'AMD', symbol: '֏', name: 'Armenian Dram', rate: 1 };
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -599,13 +594,15 @@ export function Header() {
             {/* Currency and Language Switcher */}
             <div className="flex flex-wrap items-center gap-3 sm:justify-end">
               <LanguageSwitcherHeader />
-              <div className="relative" ref={currencyRef}>
+              {/* Currency selector hidden - currency is frozen to AMD only */}
+              <div className="hidden relative" ref={currencyRef}>
                 <button
                   type="button"
                   onClick={() => {
                     setShowCurrency(!showCurrency);
                   }}
                   className="flex items-center gap-2 bg-white px-3 py-2 text-gray-800 transition-colors"
+                  disabled
                 >
                   <span className="text-base font-semibold leading-none">{selectedCurrencyInfo.symbol}</span>
                   <span className="text-sm font-medium leading-none">{selectedCurrency}</span>
@@ -661,14 +658,15 @@ export function Header() {
             </div>
             {/* Mobile Currency and Language - on same line as logo */}
             <div className="flex items-center gap-1 sm:gap-2 md:hidden">
-              {/* Currency Switcher */}
-              <div className="relative" ref={mobileCurrencyRef}>
+              {/* Currency Switcher - Hidden, currency is frozen to AMD */}
+              <div className="hidden relative" ref={mobileCurrencyRef}>
                 <button
                   type="button"
                   onClick={() => {
                     setShowMobileCurrency(!showMobileCurrency);
                   }}
                   className="flex h-9 sm:h-10 items-center justify-center gap-1 sm:gap-2 bg-transparent md:bg-white px-2 sm:px-3 text-xs sm:text-sm font-medium text-gray-800 shadow-none md:shadow-sm transition-colors cursor-pointer"
+                  disabled
                 >
                   <span className="text-sm sm:text-base font-semibold leading-none">{selectedCurrencyInfo.symbol}</span>
                   <span className="text-xs sm:text-sm font-medium leading-none">{selectedCurrency}</span>

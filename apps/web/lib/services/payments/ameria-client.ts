@@ -163,6 +163,29 @@ export class AmeriaClient {
       testMode: this.config.testMode,
     });
 
+    // Validate and normalize amount
+    // Ameria Bank requires integer amounts (no decimals)
+    // In test mode, minimum amount is 10 AMD
+    let normalizedAmount = Math.round(params.amount);
+    
+    if (normalizedAmount <= 0) {
+      throw {
+        status: 400,
+        type: 'invalid_amount',
+        title: 'Invalid Amount',
+        detail: 'Payment amount must be greater than 0',
+      };
+    }
+
+    if (this.config.testMode && normalizedAmount < 10) {
+      throw {
+        status: 400,
+        type: 'test_mode_amount_error',
+        title: 'Test Mode Amount Error',
+        detail: 'In test mode amount must be at least 10 AMD',
+      };
+    }
+
     // Convert currency to ISO code format
     const currencyCode = this.getCurrencyCode(params.currency);
 
@@ -171,13 +194,21 @@ export class AmeriaClient {
       Username: this.config.username,
       Password: this.config.password,
       OrderID: params.orderId,
-      Amount: params.amount,
+      Amount: normalizedAmount, // Use normalized integer amount
       Currency: currencyCode,
       BackURL: this.config.returnUrl, // Note: BackURL (not ReturnURL)
       Description: params.description || '',
       Opaque: params.opaque || String(params.orderId), // Store order ID in Opaque
       Timeout: 1200, // 20 minutes default
     };
+
+    console.log('📤 [AMERIA CLIENT] Sending InitPayment request:', {
+      orderId: request.OrderID,
+      amount: request.Amount,
+      originalAmount: params.amount,
+      currency: currencyCode,
+      testMode: this.config.testMode,
+    });
 
     try {
       const response = await fetch(`${this.baseUrl}/api/VPOS/InitPayment`, {
@@ -202,11 +233,29 @@ export class AmeriaClient {
           responseMessage: data.ResponseMessage,
           request: {
             orderId: params.orderId,
-            amount: params.amount,
+            amount: normalizedAmount,
+            originalAmount: params.amount,
             currency: params.currency,
+            testMode: this.config.testMode,
           },
         });
-        throw new Error(errorMessage);
+        
+        // Check if error is about test mode amount
+        if (this.config.testMode && errorMessage.toLowerCase().includes('test mode') && errorMessage.toLowerCase().includes('amount')) {
+          throw {
+            status: 400,
+            type: 'test_mode_amount_error',
+            title: 'Test Mode Amount Error',
+            detail: errorMessage || 'In test mode amount must be at least 10 AMD',
+          };
+        }
+        
+        throw {
+          status: 400,
+          type: 'payment_init_error',
+          title: 'Payment Initialization Failed',
+          detail: errorMessage,
+        };
       }
 
       console.log('✅ [AMERIA CLIENT] Payment initialized:', {

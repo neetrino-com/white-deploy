@@ -3,9 +3,11 @@ const path = require('path');
 
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@shop/ui', '@shop/design-tokens'],
+  transpilePackages: ['@shop/ui', '@shop/design-tokens', '@white-shop/db'],
   // Standalone output - prevents prerendering of 404 page
   output: 'standalone',
+  // External packages for server components (Prisma needs to be bundled)
+  serverComponentsExternalPackages: ['@prisma/client'],
   typescript: {
     ignoreBuildErrors: true, // TypeScript errors won't stop build
   },
@@ -75,6 +77,7 @@ const nextConfig = {
       ...config.resolve.alias,
       '@shop/ui': path.resolve(__dirname, '../../packages/ui'),
       '@shop/design-tokens': path.resolve(__dirname, '../../packages/design-tokens'),
+      '@white-shop/db': path.resolve(__dirname, '../../packages/db'),
     };
     
     return config;

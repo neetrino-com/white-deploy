@@ -1,60 +1,63 @@
-// Currency utilities and exchange rates
+/**
+ * Currency utilities - FROZEN TO AMD ONLY
+ * 
+ * IMPORTANT: All prices in the database MUST be stored in AMD.
+ * No currency conversion is performed - prices are displayed as-is.
+ * 
+ * This ensures consistency between:
+ * - Product prices (stored in AMD)
+ * - Cart totals (calculated in AMD)
+ * - Order totals (stored in AMD)
+ * - Payment amounts (sent to payment gateway in AMD)
+ */
 export const CURRENCIES = {
-  USD: { code: 'USD', symbol: '$', name: 'US Dollar', rate: 1 },
-  AMD: { code: 'AMD', symbol: '֏', name: 'Armenian Dram', rate: 400 }, // 1 USD = 400 AMD
-  RUB: { code: 'RUB', symbol: '₽', name: 'Russian Ruble', rate: 90 }, // 1 USD = 90 RUB
-  GEL: { code: 'GEL', symbol: '₾', name: 'Georgian Lari', rate: 2.7 }, // 1 USD = 2.7 GEL
+  AMD: { code: 'AMD', symbol: '֏', name: 'Armenian Dram', rate: 1 }, // Base currency, no conversion
 } as const;
 
-export type CurrencyCode = keyof typeof CURRENCIES;
+export type CurrencyCode = 'AMD'; // Only AMD is supported
 
 const CURRENCY_STORAGE_KEY = 'shop_currency';
 
+// Always return AMD - currency is frozen to AMD only
 export function getStoredCurrency(): CurrencyCode {
-  if (typeof window === 'undefined') return 'USD';
-  try {
-    const stored = localStorage.getItem(CURRENCY_STORAGE_KEY);
-    if (stored && stored in CURRENCIES) {
-      return stored as CurrencyCode;
-    }
-  } catch {
-    // Ignore errors
-  }
-  return 'USD';
+  // Force AMD everywhere - no other currencies supported
+  return 'AMD';
 }
 
+// Currency is frozen to AMD - no conversion needed
 export function setStoredCurrency(currency: CurrencyCode): void {
+  // Currency is frozen to AMD - do nothing
+  // This function is kept for compatibility but doesn't change currency
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
+    localStorage.setItem(CURRENCY_STORAGE_KEY, 'AMD');
     window.dispatchEvent(new Event('currency-updated'));
   } catch (error) {
     console.error('Failed to save currency:', error);
   }
 }
 
-export function formatPrice(price: number, currency: CurrencyCode = 'USD'): string {
-  const currencyInfo = CURRENCIES[currency];
-  const convertedPrice = price * currencyInfo.rate;
+// Format price in AMD - prices are already in AMD, no conversion needed
+export function formatPrice(price: number, currency: CurrencyCode = 'AMD'): string {
+  // Prices are stored in AMD, so no conversion needed
+  const currencyInfo = CURRENCIES.AMD;
   
-  // Show all currencies without decimals (remove .00)
+  // Show AMD without decimals (remove .00)
   const minimumFractionDigits = 0;
   const maximumFractionDigits = 0;
   
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('hy-AM', {
     style: 'currency',
-    currency: currencyInfo.code,
+    currency: 'AMD',
     minimumFractionDigits,
     maximumFractionDigits,
-  }).format(convertedPrice);
+  }).format(price);
 }
 
+// No conversion needed - all prices are in AMD
 export function convertPrice(price: number, fromCurrency: CurrencyCode, toCurrency: CurrencyCode): number {
-  if (fromCurrency === toCurrency) return price;
-  
-  // Convert to USD first, then to target currency
-  const usdPrice = price / CURRENCIES[fromCurrency].rate;
-  return usdPrice * CURRENCIES[toCurrency].rate;
+  // All prices are in AMD - no conversion needed
+  return price;
 }
 
 
