@@ -59,20 +59,46 @@ function encrypt(text: string): string {
  */
 function decrypt(encryptedText: string): string {
   try {
+    if (!encryptedText || typeof encryptedText !== "string") {
+      throw new Error("Invalid encrypted text format");
+    }
+    
     const parts = encryptedText.split(":");
+    if (parts.length !== 2) {
+      throw new Error("Invalid encrypted text format: expected 'iv:encrypted'");
+    }
+    
     const iv = Buffer.from(parts[0], "hex");
     const encrypted = parts[1];
+    
+    if (!iv || iv.length !== 16) {
+      throw new Error("Invalid IV length");
+    }
+    
+    if (!encrypted || encrypted.length === 0) {
+      throw new Error("Empty encrypted data");
+    }
+    
+    const key = Buffer.from(ENCRYPTION_KEY.substring(0, 32));
+    if (key.length !== 32) {
+      throw new Error("Invalid encryption key length");
+    }
+    
     const decipher = crypto.createDecipheriv(
       ENCRYPTION_ALGORITHM,
-      Buffer.from(ENCRYPTION_KEY.substring(0, 32)),
+      key,
       iv
     );
     let decrypted = decipher.update(encrypted, "hex", "utf8");
     decrypted += decipher.final("utf8");
     return decrypted;
-  } catch (error) {
-    console.error("❌ [PAYMENT CONFIG] Decryption error:", error);
-    throw new Error("Failed to decrypt payment credentials");
+  } catch (error: any) {
+    console.error("❌ [PAYMENT CONFIG] Decryption error:", {
+      message: error.message,
+      error: error.name,
+      inputLength: encryptedText?.length,
+    });
+    throw new Error(`Failed to decrypt payment credentials: ${error.message}`);
   }
 }
 
@@ -82,28 +108,60 @@ class PaymentConfigService {
    */
   async getConfig(): Promise<AmeriaPaymentConfig | null> {
     try {
+      console.log("📋 [PAYMENT CONFIG] Fetching configuration from database...");
+      
       const setting = await db.settings.findUnique({
         where: { key: CONFIG_KEY },
       });
 
       if (!setting) {
+        console.log("ℹ️ [PAYMENT CONFIG] No configuration found in database");
         return null;
       }
 
+      console.log("✅ [PAYMENT CONFIG] Configuration found, parsing...");
+      
+      if (!setting.value || typeof setting.value !== "object") {
+        console.error("❌ [PAYMENT CONFIG] Invalid configuration format in database");
+        throw new Error("Invalid configuration format in database");
+      }
+      
       const config = setting.value as any;
       
       // Decrypt password if it exists
       if (config.password && typeof config.password === "string") {
         try {
-          config.password = decrypt(config.password);
-        } catch (error) {
-          console.error("❌ [PAYMENT CONFIG] Failed to decrypt password:", error);
-          // If decryption fails, password might be in plain text (migration case)
-          // Keep it as is for now
+          // Check if password is encrypted (contains colon separator)
+          if (config.password.includes(":")) {
+            console.log("🔓 [PAYMENT CONFIG] Decrypting password...");
+            try {
+              config.password = decrypt(config.password);
+              console.log("✅ [PAYMENT CONFIG] Password decrypted successfully");
+            } catch (decryptError: any) {
+              console.error("❌ [PAYMENT CONFIG] Failed to decrypt password:", {
+                message: decryptError.message,
+                error: decryptError.name,
+              });
+              // If decryption fails and password is encrypted, we can't return it
+              // Set to empty string so user needs to re-enter it
+              console.log("⚠️ [PAYMENT CONFIG] Password decryption failed, setting to empty (user must re-enter)");
+              config.password = "";
+            }
+          } else {
+            console.log("ℹ️ [PAYMENT CONFIG] Password appears to be in plain text (not encrypted)");
+            // Password is already in plain text, keep as is
+          }
+        } catch (error: any) {
+          console.error("❌ [PAYMENT CONFIG] Unexpected error processing password:", {
+            message: error.message,
+            error: error.name,
+          });
+          // Set to empty string on any error
+          config.password = "";
         }
       }
 
-      return {
+      const result = {
         clientId: config.clientId || "",
         username: config.username || "",
         password: config.password || "",
@@ -119,8 +177,27 @@ class PaymentConfigService {
         allowedTestCards: config.allowedTestCards || [],
         testCardStrictMode: config.testCardStrictMode ?? true, // Default to strict mode
       };
+      
+      console.log("✅ [PAYMENT CONFIG] Configuration parsed successfully");
+      return result;
     } catch (error: any) {
-      console.error("❌ [PAYMENT CONFIG] Error getting config:", error);
+      console.error("❌ [PAYMENT CONFIG] Error getting config:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        code: error.code,
+      });
+      
+      // Check if it's a database connection error
+      if (error.code === 'P1001' || error.code === 'P1017' || error.code === 'P1008') {
+        throw {
+          status: 503,
+          type: "database_connection_error",
+          title: "Database Connection Error",
+          detail: "Failed to connect to database. Please try again later.",
+        };
+      }
+      
       throw {
         status: 500,
         type: "config_retrieval_error",

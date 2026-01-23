@@ -31,9 +31,10 @@ export async function POST(req: NextRequest) {
     } = body;
 
     // If useConfig is true, load from database configuration
+    let config: any = null;
     if (useConfig) {
       try {
-        const config = await paymentConfigService.getConfig();
+        config = await paymentConfigService.getConfig();
         if (config && config.isActive) {
           ClientID = config.clientId;
           Username = config.username;
@@ -59,6 +60,68 @@ export async function POST(req: NextRequest) {
         console.error("❌ [AMERIA INIT] Error loading config from DB:", error);
         // Fall through to try .env or provided credentials
       }
+    }
+
+    // Validate and convert OrderID to integer
+    // If config has orderIdMin/orderIdMax, generate OrderID in that range
+    let ameriaOrderId: number;
+    if (typeof OrderID === 'string') {
+      // If OrderID is string, try to parse it
+      const parsed = parseInt(OrderID, 10);
+      if (isNaN(parsed)) {
+        return NextResponse.json(
+          {
+            PaymentID: "",
+            ResponseCode: 400,
+            ResponseMessage: "OrderID must be a valid integer",
+          },
+          { status: 400 }
+        );
+      }
+      ameriaOrderId = parsed;
+    } else if (typeof OrderID === 'number') {
+      ameriaOrderId = Math.floor(OrderID);
+    } else {
+      return NextResponse.json(
+        {
+          PaymentID: "",
+          ResponseCode: 400,
+          ResponseMessage: "OrderID must be a number or numeric string",
+        },
+        { status: 400 }
+      );
+    }
+
+    // If config has orderIdMin and orderIdMax, generate OrderID in that range
+    if (config && config.orderIdMin !== undefined && config.orderIdMax !== undefined) {
+      const orderIdMin = Number(config.orderIdMin);
+      const orderIdMax = Number(config.orderIdMax);
+      
+      if (orderIdMin < orderIdMax) {
+        // Generate OrderID in configured range using hash of provided OrderID
+        // This ensures consistent OrderID generation for same input
+        const hash = Math.abs(
+          String(OrderID).split('').reduce((acc, char) => {
+            const charCode = char.charCodeAt(0);
+            return ((acc << 5) - acc) + charCode;
+          }, 0)
+        );
+        const range = orderIdMax - orderIdMin + 1;
+        ameriaOrderId = orderIdMin + (hash % range);
+        console.log(`🔢 [AMERIA INIT] Generated OrderID in range [${orderIdMin}, ${orderIdMax}]: ${ameriaOrderId}`);
+      }
+    }
+
+    // Validate OrderID is positive integer
+    if (ameriaOrderId <= 0 || !Number.isInteger(ameriaOrderId)) {
+      return NextResponse.json(
+        {
+          PaymentID: "",
+          ResponseCode: 400,
+          ResponseMessage: "OrderID must be a positive integer",
+        },
+        { status: 400 }
+      );
     }
 
     // If still no credentials, try .env variables (for testing)
@@ -158,12 +221,13 @@ export async function POST(req: NextRequest) {
     // Initialize payment
     // Note: AmeriaClient.initPayment() will convert currency codes automatically
     // It accepts both ISO codes (051, 978, etc.) and currency names (AMD, EUR, etc.)
+    // Use integer ameriaOrderId (not the original OrderID parameter)
     const result = await client.initPayment({
-      orderId: OrderID,
+      orderId: ameriaOrderId, // Use generated integer OrderID
       amount: Amount,
       currency: Currency, // Can be "051" or "AMD" - client will handle conversion
       description: Description || 'Payment',
-      opaque: Opaque || String(OrderID),
+      opaque: Opaque || String(OrderID), // Keep original OrderID in opaque for reference
     });
 
     // Return response in the same format as Ameria Bank API

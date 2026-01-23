@@ -427,6 +427,7 @@ model Payment {
   orderId               String
   provider              String
   providerTransactionId String?
+  ameriaOrderId         Int? // Ameria Bank OrderID (integer, from configured range)
   method                String?
   amount                Float
   currency              String    @default("AMD")
@@ -444,6 +445,7 @@ model Payment {
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@index([ameriaOrderId])
   @@map("payments")
 }
 

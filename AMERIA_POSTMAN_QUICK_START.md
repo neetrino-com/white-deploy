@@ -96,3 +96,5 @@ https://servicestest.ameriabank.am/VPOS/Payments/Pay?id={{payment_id}}&lang=en
 
 **Հաջողություն! 🎉**
 
+
+

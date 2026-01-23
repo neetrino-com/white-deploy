@@ -5,6 +5,17 @@
   "installCommand": "cd ../.. && npm install",
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "headers": [
+    {
+      "source": "/api/v1/payments/ameria/callback",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    }
+  ]
 }
 

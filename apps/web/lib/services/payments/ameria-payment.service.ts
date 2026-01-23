@@ -239,6 +239,7 @@ class AmeriaPaymentService {
           id: existingPayment?.id || "new",
         },
         update: {
+          ameriaOrderId: ameriaOrderId, // Store integer OrderID used for Ameria Bank
           providerTransactionId: initResponse.PaymentID,
           status: "processing",
           providerResponse: initResponse as any,
@@ -251,6 +252,7 @@ class AmeriaPaymentService {
           amount: amount,
           currency: config.currency,
           status: "processing",
+          ameriaOrderId: ameriaOrderId, // Store integer OrderID used for Ameria Bank
           providerTransactionId: initResponse.PaymentID,
           providerResponse: initResponse as any,
         },
